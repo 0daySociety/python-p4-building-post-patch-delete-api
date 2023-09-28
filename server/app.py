@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response,jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
@@ -19,53 +19,125 @@ db.init_app(app)
 def index():
     return "Index for Game/Review/User API"
 
-@app.route('/games')
-def games():
+# @app.route('/games')
+# def games():
 
-    games = []
-    for game in Game.query.all():
-        game_dict = {
-            "title": game.title,
-            "genre": game.genre,
-            "platform": game.platform,
-            "price": game.price,
-        }
-        games.append(game_dict)
+#     games = []
+#     for game in Game.query.all():
+#         game_dict = {
+#             "title": game.title,
+#             "genre": game.genre,
+#             "platform": game.platform,
+#             "price": game.price,
+#         }
+#         games.append(game_dict)
 
-    response = make_response(
-        games,
-        200
-    )
+#     response = make_response(
+#         games,
+#         200
+#     )
 
-    return response
+# #     return response
 
-@app.route('/games/<int:id>')
-def game_by_id(id):
-    game = Game.query.filter(Game.id == id).first()
+# @app.route('/games/<int:id>')
+# def game_by_id(id):
+#     game = Game.query.filter(Game.id == id).first()
     
-    game_dict = game.to_dict()
+#     game_dict = game.to_dict()
 
-    response = make_response(
-        game_dict,
-        200
-    )
+#     response = make_response(
+#         game_dict,
+#         200
+#     )
 
-    return response
+#     return response
 
-@app.route('/reviews')
+@app.route('/reviews',methods=['GET','POST'])
 def reviews():
+    if request.method =="GET":
 
-    reviews = []
-    for review in Review.query.all():
-        review_dict = review.to_dict()
-        reviews.append(review_dict)
+        reviews = []
+        for review in Review.query.all():
+            review_dict = review.to_dict()
+            reviews.append(review_dict)
 
-    response = make_response(
-        reviews,
-        200
-    )
+        response = make_response(
+            reviews,
+            200
+        )
 
-    return response
+        return response
+    
+
+    elif request.method =="POST":
+        reviews =Review(
+        score=request.form.get("score"),
+        comment=request.form.get("comment"),
+        game_id =request.form.get("game_id"),
+        user_id =request.form.get("user_id")
+
+        )
+        db.session.add(reviews)
+        db.session.commit()
+
+        reviews_dict=reviews.to_dict()
+        response =make_response(jsonify(reviews_dict),201)
+
+        return response
+
+        
+
+
+@app.route("/reviews/<int:id>",methods=['GET','DELETE','PATCH'])
+def review_by_id(id):
+    review =Review.query.get(id)
+
+    if request.method =="GET":
+       review_dict= review.to_dict()
+       response =make_response(jsonify(review_dict),200)
+
+       return response 
+    
+    elif request.method =="DELETE":
+        if not review:
+            response_body ="<h1>record not found</h1>"
+
+            response =make_response(response_body,200)
+
+            return response
+
+        db.session.delete(review)
+        db.session.commit()
+
+        response_body={"Delete":"Success",
+                       "message":"success"
+                       }
+
+        response =make_response(jsonify(response_body),200)  
+
+        return response
+    
+    elif request.method == "PATCH":
+        review =Review.query.get(id)
+
+        for atr in request.form:
+            setattr(review,atr,request.form.get(atr))
+        db.session.add(review)
+        db.session.commit()
+
+        review_dict =review.to_dict()
+        response =make_response(jsonify(review_dict),200)
+
+        return response
+        
+    
+
+
+    
+
+
+
+
 
 @app.route('/users')
 def users():
